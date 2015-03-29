@@ -1,8 +1,12 @@
+import sun.nio.cs.StandardCharsets;
+
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -54,11 +58,11 @@ public class ClientViewController extends Thread implements ActionListener {
                 try {
                     String filePath = this.clientGUI.getClientPrivatePassFilePath();
                     byte [] passwordDigest = Crypto.SHA256(String.valueOf(clientGUI.getPassword()));
-                    String encrypted = String.valueOf(
+                    String encrypted = new String(
                             Crypto.encrypt(FileOps.readFile(filePath),getKey(passwordDigest),getIV(passwordDigest))
                     );
                     FileOps.writeFile(String.valueOf(++filenameCounter)+".txt",
-                            String.valueOf(Crypto.SHA256(username))+encrypted);
+                            new String(Crypto.SHA256(username))+encrypted);
                     enrollmentFile = new File(String.valueOf(filenameCounter)+".txt");
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -85,7 +89,7 @@ public class ClientViewController extends Thread implements ActionListener {
         File [] enrollments = FileOps.findTxtFiles(System.getProperty("user.dir")); //get the current working directory
         for(File file : enrollments){
             String content = FileOps.readFile(file.getAbsolutePath());
-            if (String.valueOf(Crypto.SHA256(content.substring(0, 256))) == String.valueOf(Crypto.SHA256(username))){ //enrolled before?
+            if (new String(Crypto.SHA256(content.substring(0, 256))) == new String(Crypto.SHA256(username))){ //enrolled before?
                 return file;
             }
         }
@@ -93,10 +97,21 @@ public class ClientViewController extends Thread implements ActionListener {
     }
 
     private String getKey(byte[] digest){
-        return String.valueOf(Arrays.copyOfRange(digest, 0, 16));
+        try {
+            byte [] key = Arrays.copyOfRange(digest, 0, 16);
+            return new String(Arrays.copyOfRange(digest, 0, 16),"ISO-8859-1");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
     private String getIV(byte[] digest){
-        return String.valueOf(Arrays.copyOfRange(digest, 16, 32));
+        try {
+            return new String(Arrays.copyOfRange(digest, 16, 32),"ISO-8859-1");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }
